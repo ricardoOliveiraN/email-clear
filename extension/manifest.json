@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "email-clear",
+  "version": "0.0.1",
+  "description": "Proteção contra e-mails maliciosos enquanto você lê.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://mail.google.com/*"],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["src/content/content.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "email-clear"
+  }
+}
