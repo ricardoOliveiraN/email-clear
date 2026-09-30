@@ -113,6 +113,8 @@ Fechado nesta sessão: ADR-0006 (aviso padrão = toast no topo, todos os níveis
 **D. UI/UX do free**
 - [ ] Auto-dismiss do toast (opcional) e ícone por nível (hoje sempre `!`).
 - [ ] Estado "validando…" (opcional) e decidir comportamento em falha de rede (hoje some em silêncio → avaliar "Não avaliado").
+- [ ] **Popup** (`action.default_popup`): painel do ícone com atalho on/off e status. Hoje o `action` só tem `default_title` (clicar não abre nada).
+- [ ] **Options** (`options_ui`): preferências persistentes (níveis exibidos, auto-dismiss, remetentes); no pago, regras de pastas/quarentena (F13). Estado via `chrome.storage`.
 
 **E. Infra/prontidão**
 - [ ] Decidir **npm vs pnpm** (ADR-0013); hoje npm.
