@@ -1,15 +1,16 @@
-import { getOpenedEmail, getConversationRoot, isGmail } from '../adapters/gmail';
+import { getOpenedEmail, getConversationRoot, getThreadId, isGmail, observeThread } from '../adapters/gmail';
 import { sendMessage, VALIDATE_EMAIL } from '../core/messaging';
 import type { ValidateEmailResponse } from '../core/messaging';
 import { getCachedClassification, setCachedClassification } from '../core/storage';
 import type { Classification, OpenedEmail } from '../core/types';
-import { isBannerMounted, removeBanner, renderBanner } from '../ui/banner';
+import { isAlertMounted, removeAlert, renderAlert } from '../ui/alert';
 
 const DEBOUNCE_MS = 500;
 
 let currentKey: string | null = null;
 let currentClassification: Classification | null = null;
 let inFlightKey: string | null = null;
+let dismissedKey: string | null = null;
 let timer: number | undefined;
 
 async function requestClassification(email: OpenedEmail): Promise<Classification> {
@@ -45,21 +46,27 @@ async function handleEmailOpen(): Promise<void> {
   const root = getConversationRoot();
 
   if (!email || !root) {
-    removeBanner();
+    removeAlert();
     currentKey = null;
     currentClassification = null;
+    dismissedKey = null;
     return;
   }
 
-  const key = `${email.sender ?? ''}|${email.subject ?? ''}`;
+  const key = getThreadId() ?? `${email.sender ?? ''}|${email.subject ?? ''}`;
 
-  if (key === currentKey && isBannerMounted()) {
+  if (key === currentKey && isAlertMounted()) {
+    return;
+  }
+
+  if (key === currentKey && dismissedKey === key) {
     return;
   }
 
   if (key !== currentKey) {
     currentKey = key;
     currentClassification = null;
+    dismissedKey = null;
   }
 
   if (inFlightKey === key) {
@@ -73,7 +80,9 @@ async function handleEmailOpen(): Promise<void> {
       return;
     }
     currentClassification = classification;
-    renderBanner(classification, root);
+    renderAlert(classification, () => {
+      dismissedKey = key;
+    });
   } finally {
     if (inFlightKey === key) {
       inFlightKey = null;
@@ -92,6 +101,10 @@ function start(): void {
   if (!isGmail()) {
     return;
   }
+
+  observeThread(() => {
+    scheduleCheck();
+  });
 
   const observer = new MutationObserver(() => {
     scheduleCheck();

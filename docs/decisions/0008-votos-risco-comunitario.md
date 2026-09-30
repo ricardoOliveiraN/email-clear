@@ -21,6 +21,7 @@ Usuários podem atribuir uma nota de risco a um remetente (ex.: ao ver um destin
 - Voto vinculado ao UUID de instalação e à entidade (domínio/remetente), com deduplicação.
 - Acima de um threshold ponderado por confiança (ex.: sinais de spam + votos), o remetente entra na lista de bloqueio.
 - Notificar/refletir a decisão global nas validações (F01) e, no pago, mover para quarentena.
+- **Fonte no free**: o botão "marcar remetente como perigoso" do aviso (ADR-0006 §6) é o principal ponto de voto; a lista resultante responde **antes** da IA (F01), economizando acionamento a longo prazo. Voto local é sinal, não verdade absoluta.
 
 ## Próximo passo
 

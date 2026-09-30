@@ -7,7 +7,7 @@ O **email-clear** protege o destinatário de e-mails maliciosos no momento em qu
 ## Personas
 
 1. **Usuário comum (free)** — pessoa física que quer saber se um e-mail é confiável antes de clicar. Não quer se cadastrar nem configurar nada.
-2. **Profissional intensivo (pago)** — analisa grandes volumes de e-mail (sistemas, atendimento, financeiro) e precisa de processamento em lote, classificação automática e organização em pastas.
+2. **Profissional intensivo (pago)** — analisa grandes volumes de e-mail (sistemas, atendimento, financeiro) e precisa de processamento em lote, classificação automática e organização em pastas. Inclui o **cleaner**: criar pastas customizadas e rotear mensagens por conteúdo, limpando a caixa de entrada.
 3. **Comunidade defensora** — usuários engajados que reportam a nota de risco de remetentes, alimentando de forma colaborativa a lista de bloqueio.
 
 ## Princípios

@@ -5,10 +5,10 @@ Progresso incremental. O foco de implementação começa no **Free** (para teste
 ## Fase F1 — Fundação
 **Objetivo**: esqueleto funcional para começar.
 
-- [ ] Repositório + estrutura de pastas (extensão / backend)
-- [ ] Backend FastAPI rodando (endpoint saúde)
+- [x] Estrutura da extensão `extension/` (TypeScript + Vite + CRXJS — ADR-0010)
+- [x] Esqueleto da extensão Chrome MV3 + adaptador Gmail (stub)
+- [ ] Estrutura do backend `backend/` + FastAPI rodando (endpoint saúde)
 - [ ] PostgreSQL local (docker) + modelos básicos (remetentes perigosos, verificações)
-- [ ] Esqueleto da extensão Chrome MV3 + adaptador Gmail vazio
 - [ ] CI local (lint/testes) e docker-compose de dev
 
 ## Fase F2 — Validação Free (MVP de testes)
@@ -45,6 +45,7 @@ Progresso incremental. O foco de implementação começa no **Free** (para teste
 - [ ] F08 — classificação em lote
 - [ ] F09 — pastas/quarentena automáticas (addLabel via API) (ADR-0006)
 - [ ] F10 — filtros/automação por regra
+- [ ] F13 — pastas customizadas por conteúdo (cleaner): roteamento por regra + classificação (ADR-0009)
 
 ## Fase F6 — Produto/Premium
 **Objetivo**: converter e distribuir.

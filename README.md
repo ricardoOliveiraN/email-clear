@@ -14,11 +14,15 @@ As decisões de projeto (o quê, porquê, como, quando), arquitetura, estimativa
 - [Funcionalidades (Free/Pago)](docs/product/01-features.md)
 - [Decisões — ADRs](docs/decisions/README.md)
 - [Arquitetura](docs/architecture/0001-visao-arquitetural.md)
+- [Estrutura de pastas](docs/architecture/0002-estrutura-de-pastas.md)
 - [Estimativas e custos](docs/planning/0001-estimativas.md)
 - [Roadmap](docs/roadmap/0001-marcos.md)
+- [Handoff — estado atual](docs/handoff/0001-estado-atual.md)
 
 ## Estrutura
 
 ```
-docs/     Documentação do projeto (decisões, arquitetura, roadmap)
+docs/        Documentação (decisões, arquitetura, roadmap, handoff)
+extension/   Extensão Chrome MV3 (a criar — ver docs/architecture/0002)
+backend/     API FastAPI + worker (a criar — ver docs/architecture/0002)
 ```

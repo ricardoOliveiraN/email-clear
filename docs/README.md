@@ -11,6 +11,7 @@ Este diretório concentra todas as decisões do projeto. A convenção é regist
 | `architecture/` | Visão arquitetural, componentes, diagramas | Entender o sistema como um todo |
 | `planning/` | Estimativas de tempo, custos e aquisição de usuários | Planejamento de recursos e verba |
 | `roadmap/` | Marcos (milestones) incrementais | Acompanhar progresso e próximos passos |
+| `handoff/` | Estado atual, pendências e como retomar | Início/fim de cada sessão de trabalho |
 
 ## Fluxo de escrita
 

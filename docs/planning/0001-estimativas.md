@@ -17,12 +17,12 @@ Projeções de tempo (aceleradas por IA), custos monetários e esforço de aquis
 | F2 — Validação free | F01 remetente, F02 conteúdo, F03 suspeito, F04 aviso no Gmail, F05 quota | ~30h | ~15 dias |
 | F3 — Robustez | Testes, tratamento de erro/DOM, cache, deploy (VPS/containers), seg. básica | ~24h | ~12 dias |
 | F4 — Colaborativo | F11 nota de risco, F12 lista de bloqueio (thresholds, anti-abuso) | ~24h | ~12 dias |
-| F5 — Pago (lote) | F07 processamento em lote, F08 classificação, F09 pastas/quarentena, workers | ~36h | ~18 dias |
+| F5 — Pago (lote) | F07 processamento em lote, F08 classificação, F09 pastas/quarentena, F13 pastas customizadas por conteúdo (cleaner), workers | ~44h | ~22 dias |
 | F6 — publicitário/Premium | Cobrança (planos), onboarding pago, métricas | ~40h | ~20 dias |
 
-**Total declarado (com IA): ~166h** ≈ **~83 dias úteis** a 2h/dia (~4 meses). Sem IA, seria consideravelmente maior; assuma 2–4x.
+**Total declarado (com IA): ~174h** ≈ **~87 dias úteis** a 2h/dia (~4 meses). Sem IA, seria consideravelmente maior; assuma 2–4x.
 
-> As fases variam conforme decisões em aberto (ADR-0006/0007/0008). Revisar após F2.
+> As fases variam conforme decisões em aberto (ADR-0006/0007/0008/0009). Revisar após F2.
 
 ## Custo monetário (estimativas mensais)
 

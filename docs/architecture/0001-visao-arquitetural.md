@@ -34,11 +34,11 @@ Visão macro dos componentes. Para decisões detalhadas veja os [ADRs](../decisi
 ## Fluxo Free (MVP)
 
 1. Usuário abre o e-mail no Gmail.
-2. Extensão detecta a abertura e extrai remetente/conteúdo.
-3. Extensão consulta backend com `X-Install-Id`.
+2. Content script detecta a abertura e extrai remetente/conteúdo.
+3. Content script envia a mensagem ao **service worker** (background), que faz a chamada HTTPS ao backend (evita o CORS da página no MV3 e centraliza a identidade) com o token de instalação (ADR-0005/0014).
 4. Backend valida: tabela de perigosos + heurísticas + IA (conteúdo).
 5. Backend aplica quota e devolve classificação/score.
-6. Extensão injeta aviso visual (CSS/HTML) e cacheia o resultado.
+6. Extensão injeta aviso visual (CSS/HTML) e cacheia o resultado (cache local e, no servidor, por mensagem).
 
 ## Fluxo Pago (lote via API de e-mail)
 
@@ -68,6 +68,8 @@ O lote **não** é feito pela extensão: o navegador carrega os e-mails sob dema
 ## Considerações transversais
 
 - **Conexão de rede**: latência/offline — cachear resultado por mensagem.
-- **Custo de IA**: controlar por quota (ADR-0005) e por mensagem (ADR-0007).
-- **Privacidade**: sem PII; UUID anônimo apenas para quota.
+- **Chamadas à API**: feitas pelo **service worker** (background), não pelo content script — no MV3 o `fetch` do content script está sujeito ao **CORS da página**; o background usa `host_permissions`. O content script apenas troca mensagens com o background.
+- **Identidade**: token de instalação emitido pelo servidor; o cliente é tratado como **não confiável** (ADR-0005/0014).
+- **Custo de IA**: controlar por quota (ADR-0005), por mensagem (ADR-0007) e por cache (por mensagem, no servidor).
+- **Privacidade**: sem PII; UUID/token anônimos apenas para quota.
 - **Integração de e-mails**: Gmail primeiro; adaptadores isolados (ADR-0002).

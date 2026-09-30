@@ -1,5 +1,7 @@
 import type { OpenedEmail } from '../../core/types';
 
+export { getThreadId, observeThread } from './route';
+
 const SUBJECT_SELECTOR = 'h2.hP';
 const SENDER_SELECTOR = 'span.gD[email]';
 const BODY_SELECTOR = 'div.a3s.aiL';
