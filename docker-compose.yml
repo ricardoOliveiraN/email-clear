@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: emailclear
+      POSTGRES_PASSWORD: emailclear
+      POSTGRES_DB: emailclear
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emailclear -d emailclear"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://emailclear:emailclear@db:5432/emailclear
+      INSTALL_TOKEN_SECRET: ${INSTALL_TOKEN_SECRET:-dev-secret-change-me}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-4o-mini}
+      SAFEBROWSING_API_KEY: ${SAFEBROWSING_API_KEY:-}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-86400}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  pgdata:

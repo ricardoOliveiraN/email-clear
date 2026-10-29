@@ -4,7 +4,11 @@
   "version": "0.0.1",
   "description": "Proteção contra e-mails maliciosos enquanto você lê.",
   "permissions": ["storage"],
-  "host_permissions": ["https://mail.google.com/*"],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
     "type": "module"

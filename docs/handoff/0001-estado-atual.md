@@ -2,30 +2,35 @@
 
 Documento operacional para retomar o projeto sem reler tudo. **Atualizar a cada sessão** (novo arquivo `0002-...` ou revisão deste). Para planejamento, ver [`../roadmap/0001-marcos.md`](../roadmap/0001-marcos.md).
 
-- **Data**: 2026-09-30 (fim de sessão)
-- **Fase**: F1 — Fundação → **F2 (free, pré-backend)**. Extensão scaffolded, aviso (toast) e detecção por URL prontos; backend ainda não iniciado.
-- **Branch**: `main` (mudanças **não commitadas**, prontas para commit — ver checklist)
+- **Data**: 2026-10-29 (fim de sessão)
+- **Fase**: F1 — Fundação (**backend iniciado**). Extensão F2 (free) pronta em modo mock; backend com `/v1/healthz` + modelos de dados criados — **ainda sem** endpoints de instalação/validação/voto.
+- **Branch**: `main` (mudanças **não commitadas** — ver checklist)
 
 ## O que existe hoje
 
-Documentação + **scaffold da extensão** (TypeScript + Vite + CRXJS, ADR-0010). Backend ainda não iniciado.
+Documentação + **extensão (scaffold funcional, mock)** + **backend inicial** (FastAPI + PostgreSQL + Alembic).
 
-- `README.md` — descrição do produto e índice da documentação.
-- `docs/product/` — visão, features (F01–F13), glossário.
-- `docs/decisions/` — ADRs 0001–0016.
-- `docs/architecture/` — visão arquitetural e estrutura de pastas.
-- `docs/planning/` — estimativas de tempo/custo.
-- `docs/roadmap/` — marcos F1–F6; F1 parcialmente concluída.
-- `docs/handoff/` — este documento.
-- `AGENTS.md` — comandos e regras para agentes (ADR-0012).
-- `extension/` — extensão MV3 (scaffold funcional):
-  - `src/background/service-worker.ts` — identidade + chamadas à API (evita CORS no MV3).
-  - `src/content/content.ts` — observer do Gmail + orquestração (envia mensagem ao background).
-  - `src/adapters/gmail/` — extração de remetente/assunto/corpo (seletores iniciais).
-  - `src/core/` — `config`, `storage` (UUID/cache em `chrome.storage.local`), `api-client`, `mock` (temporário), `messaging`, `types`.
-  - `src/ui/alert.ts` — aviso não-bloqueante no topo (toast) com Shadow DOM, cor por nível; fechável.
+- `README.md`, `docs/product/`, `docs/decisions/` (ADRs 0001–0016), `docs/architecture/`, `docs/planning/`, `docs/roadmap/`, `AGENTS.md`.
+- `extension/` — MV3 (TS + Vite + CRXJS): toast de aviso (Shadow DOM) com **botões de voto** ("Perigoso" / "Legítimo"), detecção por URL. **Plugada ao backend**: `API_BASE_URL` via `import.meta.env.VITE_API_BASE_URL` (default `http://127.0.0.1:8000`), token de instalação via `POST /v1/install` (ADR-0014); mock só com `VITE_USE_MOCK=true`.
+- `backend/` — (ADR-0003/0004):
+  - `app/main.py` — FastAPI.
+  - `app/api/v1/` — `GET /v1/healthz`; `POST /v1/install` (token HMAC, ADR-0014); `POST /v1/validate/lookup` (cache L2, ADR-0015); `POST /v1/validate` (remetente → links → conteúdo, ADR-0007); `POST /v1/vote` (voto perigoso/legítimo, ADR-0008).
+  - `app/core/` — `config.py` (pydantic-settings) + `security.py` (token HMAC).
+  - `app/db/` — engine/sessão async (SQLAlchemy 2 + asyncpg).
+  - `app/models/` — `instalacao`, `remetente`, `voto_remetente`, `link`, `verificacao_link`, `classificacao`.
+  - `app/domain/` — `normalize` (hash/URL), `score` (Wilson bidirecional + faixas + desconto de legítimo), `heuristics` (fallback sem IA).
+  - `app/services/` — `ai` (OpenRouter), `safebrowsing`, `links`, `remetentes` — atrás de interfaces mockáveis.
+  - `alembic/` — migration inicial aplicada.
+  - `tests/` — 22 testes (health, domain, security).
+- `docker-compose.yml` (raiz) — `db` (Postgres 16) + `backend` (roda `alembic upgrade head` e sobe o uvicorn).
 
-**Verificação**: `npm run typecheck`, `npm run lint`, `npm run build` e `npm test` passam; `npm audit` com **0 vulnerabilidades** (após subir `vite 8` e `vitest 5`, ADR-0011). **Smoke test confirmado**: alerta no topo aparece no Gmail com cor/nível corretos (modo mock); `MOCK_FORCE_LEVEL` em `config.ts` permite forçar um nível nos testes.
+**Verificação**: `docker compose up -d --build` sobe tudo; `GET /v1/healthz` → `{"status":"ok","database":"ok"}`. Fluxo testado: `install` → `validate` → `lookup` (hit) → `vote` (5 votos → remetente `legitimate`/`dangerous`, com desconto/piso no score). `cd backend && .venv/Scripts/python -m pytest` = 22 passed; `ruff check` limpo.
+
+## Comandos
+
+- Extensão: `cd extension` → `npm run dev|build|typecheck|lint|test`.
+- Backend (docker): `docker compose up -d --build` (db + api); `docker compose logs -f backend`.
+- Backend (local, venv): `cd backend` → `.venv/Scripts/python -m alembic upgrade head` / `.venv/Scripts/python -m pytest` / `.venv/Scripts/python -m ruff check app`.
 
 ## Decisões consolidadas
 
@@ -37,8 +42,8 @@ Documentação + **scaffold da extensão** (TypeScript + Vite + CRXJS, ADR-0010)
 | 0004 | PostgreSQL | Aceito |
 | 0005 | Identidade anônima e quota (modelo em camadas) | **Proposto** |
 | 0006 | Injeção do aviso, quarentena e resiliência do adaptador | **Proposto** (fechado) |
-| 0007 | Classificação e score de risco | **Rascunho** |
-| 0008 | Votos comunitários → blocklist | **Rascunho** |
+| 0007 | Classificação e score de risco | **Proposto** (revisado — sinais/pesos/faixas fixados) |
+| 0008 | Votos comunitários → blocklist | **Proposto** (revisado — Wilson bidirecional: perigoso **e** legítimo) |
 | 0009 | Pastas customizadas por conteúdo (cleaner) | **Rascunho** |
 | 0010 | Stack da extensão (TS + Vite + Web Components) | Aceito |
 | 0011 | Segurança da cadeia de suprimentos (dependências) | Aceito |
@@ -50,82 +55,58 @@ Documentação + **scaffold da extensão** (TypeScript + Vite + CRXJS, ADR-0010)
 
 ## Pendências / blocos abertos
 
-1. **ADR-0005 / ADR-0014** — identidade em camadas: UUID local (best-effort) + **token emitido pelo servidor** (HMAC), limites por IP/sub-rede, teto global, cache por mensagem e IA seletiva. Implementar no backend.
-2. **ADR-0006** — fechado (Proposto). Implementar: alerta no topo para todos os níveis (base pronta em `src/ui/alert.ts`); botão de acionamento de quarentena (pago) via Gmail API; lote move já classificados **exceto lixeira**; estratégia de resiliência do adaptador (canário/telemetria anônima/testes de contrato); botão "marcar remetente como perigoso" no free.
-3. **ADR-0007** — definir sinais, limiares de score (0–100 → faixas) e modelo de IA + custo por mensagem.
-4. **ADR-0008** — definir escala de voto, thresholds e regras anti-abuso (fonte de votos no free: ADR-0006 §6).
-5. **ADR-0009** — definir pastas customizadas/cleaner (F13).
-6. **Diretório `backend/`** — ainda não criado (árvore em [`../architecture/0002-estrutura-de-pastas.md`](../architecture/0002-estrutura-de-pastas.md)).
-7. **Adaptador Gmail** — `route.ts` já observa o hash (`hashchange`) e expõe `getThreadId` como chave estável; seletores de extração (`h2.hP`, `span.gD`, `div.a3s`) seguem frágeis; falta tratar threads com várias mensagens e `messageId` real para o cache.
-8. **Modo mock ligado** — `USE_MOCK = true` em `src/core/config.ts`; desligar quando o backend existir.
-9. **CI não configurado** — GitHub Actions (typecheck + lint + test + `npm audit`).
-10. **Gerenciador de pacotes** — decidir npm vs pnpm (ADR-0013); hoje npm.
-11. **Revisão/validação humana** — checklist abaixo; commit pendente.
-12. **ADR-0015** — implementar cache L2 no servidor + pré-checagem por hash (`crypto.subtle` no cliente): definir TTL, normalização e eventual salt.
-13. **ADR-0016** — migrar `API_BASE_URL` para `import.meta.env.VITE_API_BASE_URL`, derivar `USE_MOCK` de `import.meta.env.DEV` e garantir build de produção sem mock.
+**A. Backend — o que falta (em ordem)**
+- [x] `POST /v1/install` — token HMAC (ADR-0014), rate-limit por IP (em memória).
+- [x] `POST /v1/validate/lookup` — pré-checagem por hash (ADR-0015).
+- [x] `POST /v1/validate` — remetente (votos) → links (Safe Browsing) → conteúdo (OpenRouter/heurística).
+- [x] `domain/` (score/Wilson/normalização) e `services/` (OpenRouter/Safe Browsing/links/remetentes), atrás de interfaces mockáveis.
+- [x] `POST /v1/vote` — voto perigoso/legítimo com dedup + Wilson bidirecional (ADR-0008).
+- [x] **Remetente legítimo** — 5+ votos "safe" → desconto de 50% no risco de conteúdo (ADR-0007/0008).
+- [x] **UI de voto** na extensão (botões "Perigoso"/"Legítimo" no toast).
+- [ ] Rate-limit/quota compartilhados (hoje em memória; produção → Redis) e limites por sub-rede.
+- [ ] Testes de integração dos endpoints (hoje: 22 testes unitários).
 
-## Para commitar (sessão 2026-09-17)
+**B. Extensão — endurecimento (maior risco, pré-backend)**
+- [ ] **Adaptador Gmail**: threads com várias mensagens + `messageId` real (hoje `id: null`).
+- [ ] Seletores com fallback em cascata + degradação silenciosa.
+- [ ] Observer estreito (raiz da conversa, não `document.body`).
+- [ ] Cache local por `messageId` + TTL/limpeza.
 
-Nada foi commitado ainda. Marque conforme validar.
+**C. Testes e CI**
+- [ ] Vitest: `route.ts`, `alert.ts`, `api-client.ts`, adaptador com fixtures do DOM.
+- [ ] CI (GitHub Actions): backend (ruff + pytest) e extensão (typecheck + lint + test + `npm audit`).
 
-**Criados**
-- [ ] `AGENTS.md`, `.gitignore` (raiz)
-- [ ] `docs/architecture/0002-estrutura-de-pastas.md`
-- [ ] `docs/decisions/0009-pastas-customizadas-conteudo.md`
-- [ ] `docs/decisions/0010-stack-extensao.md`
-- [ ] `docs/decisions/0011-seguranca-cadeia-suprimentos.md`
-- [ ] `docs/decisions/0012-convencoes-agentes.md`
-- [ ] `docs/decisions/0013-gerenciador-pacotes-npm-pnpm.md`
-- [ ] `docs/decisions/0014-identidade-servidor.md`
-- [ ] `docs/decisions/0015-cache-duas-camadas-hash.md`
-- [ ] `docs/decisions/0016-config-segredos-armazenamento.md`
-- [ ] `docs/handoff/0001-estado-atual.md`
-- [ ] `extension/` — configs (`manifest.json`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `package.json`, `package-lock.json`, `.gitignore`) + `src/**`
+**D. Config/build (ADR-0016)**
+- [x] `API_BASE_URL` via `import.meta.env.VITE_API_BASE_URL`; `USE_MOCK` via `VITE_USE_MOCK` (off por padrão); token de instalação plugado (`api-client` + `storage`).
 
-**Alterados**
-- [ ] `README.md`, `docs/README.md`, `docs/decisions/README.md`
-- [ ] `docs/product/00-visao.md`, `01-features.md`, `02-glossario.md`
-- [ ] `docs/planning/0001-estimativas.md`, `docs/roadmap/0001-marcos.md`
-- [ ] `docs/decisions/0005-identidade-anonima-rate-limit.md` (revisado)
-- [ ] `docs/decisions/0006-injecao-css-html-pastas.md` (revisado/fechado)
-- [ ] `docs/decisions/0008-votos-risco-comunitario.md` (revisado)
-- [ ] `docs/architecture/0001-visao-arquitetural.md`
+**E. UI/UX do free**
+- [ ] Auto-dismiss do toast + ícone por nível.
+- [ ] Estado "validando…" e comportamento em falha de rede.
+- [ ] Popup (`action.default_popup`) e Options (`options_ui`).
 
-> `extension/dist/` e `extension/node_modules/` estão no `.gitignore` — **não** entram no commit.
-
-## Próxima sessão — pendências do free (pré-backend)
-
-Fechado nesta sessão: ADR-0006 (aviso padrão = toast no topo, todos os níveis), ADR-0015 (cache em duas camadas), ADR-0016 (config/segredos/armazenamento) e detecção por URL (`adapters/gmail/route.ts`). O que falta **antes** de iniciar o backend:
-
-**A. Extensão — endurecimento (maior risco)**
-- [ ] **Adaptador Gmail**: tratar threads com **várias mensagens** (hoje `querySelector('.a3s.aiL')` pega a primeira) e capturar o **`messageId` real** (hoje `id: null`) para o cache.
-- [ ] **Seletores com fallback em cascata** + degradação silenciosa (nunca aviso errado).
-- [ ] **Observer estreito**: restringir o `MutationObserver` à raiz da conversa (hoje observa `document.body` inteiro).
-- [ ] **Cache local**: chavear por `messageId` + TTL/limpeza (hoje por threadId, sem TTL).
-
-**B. Testes e CI**
-- [ ] **Vitest**: `route.ts` (`getThreadId`), `alert.ts`, `api-client.ts` e adaptador com **fixtures** do DOM do Gmail.
-- [ ] **CI** (GitHub Actions): `npm ci` + typecheck + lint + test + `npm audit` (ADR-0011). Não configurado.
-
-**C. Config/build (ADR-0016)**
-- [ ] `API_BASE_URL` via `import.meta.env.VITE_API_BASE_URL` e `USE_MOCK` derivado de `import.meta.env.DEV`; garantir build de produção **sem mock**.
-
-**D. UI/UX do free**
-- [ ] Auto-dismiss do toast (opcional) e ícone por nível (hoje sempre `!`).
-- [ ] Estado "validando…" (opcional) e decidir comportamento em falha de rede (hoje some em silêncio → avaliar "Não avaliado").
-- [ ] **Popup** (`action.default_popup`): painel do ícone com atalho on/off e status. Hoje o `action` só tem `default_title` (clicar não abre nada).
-- [ ] **Options** (`options_ui`): preferências persistentes (níveis exibidos, auto-dismiss, remetentes); no pago, regras de pastas/quarentena (F13). Estado via `chrome.storage`.
-
-**E. Infra/prontidão**
-- [ ] Decidir **npm vs pnpm** (ADR-0013); hoje npm.
+**F. Infra/prontidão**
+- [ ] Decidir npm vs pnpm (ADR-0013).
 - [ ] Ícones do manifest e revisão de permissões.
 
-**F. Depois (depende do backend)**
-- [ ] `backend/` + `/healthz`, depois `POST /v1/install` (ADR-0014) e `POST /v1/validate`; plugar `api-client`.
-- [ ] Features F01/F02/F03/F06 e cache L2 + pré-check por hash (ADR-0015).
+## Para commitar (sessão 2026-10-29)
 
-Ordem sugerida: **B → A → C → D → E → F.**
+Nada foi commitado ainda nesta sessão. Marque conforme validar.
 
+**Criados**
+- [ ] `backend/` — `pyproject.toml`, `Dockerfile`, `.dockerignore`, `.env.example`, `.gitignore`, `alembic.ini`, `alembic/**`, `app/**` (core/db/models/api/schemas/domain/services/main), `tests/**`
+- [ ] `docker-compose.yml` (raiz)
+- [ ] `.env.example` (raiz)
+
+**Alterados**
+- [ ] `.gitignore` (raiz — entradas Python + `!.env.example`)
+- [ ] `extension/` — `manifest.json`, `src/core/{config,storage,api-client,messaging,types}.ts`, `src/background/service-worker.ts`, `src/content/content.ts`, `src/ui/alert.ts` + `.env.example`
+- [ ] `docs/decisions/0007-classificacao-risco.md` (revisado → Proposto)
+- [ ] `docs/decisions/0008-votos-risco-comunitario.md` (revisado → Proposto)
+- [ ] `docs/decisions/README.md` (status 0007/0008)
+- [ ] `docs/roadmap/0001-marcos.md` (F1: backend + PostgreSQL marcados)
+- [ ] `docs/handoff/0001-estado-atual.md` (este arquivo)
+
+> `backend/.venv/`, `__pycache__/` e `backend/.env` estão no `.gitignore` — **não** entram no commit.
 
 ## Como retomar
 
@@ -137,5 +118,6 @@ Ordem sugerida: **B → A → C → D → E → F.**
 ## Riscos conhecidos
 
 - Mudanças no DOM do Gmail → custo de manutenção (F3+).
-- Custo de IA no free → mitigar com quota (ADR-0005) e cache; estimar por mensagem (ADR-0007).
+- Custo de IA no free → mitigar com quota (ADR-0005) e cache por hash (ADR-0015); estimar por mensagem (ADR-0007).
 - Conversão free→pago incerta → validar valor percebido antes de F5.
+- **OpenRouter/Safe Browsing** são serviços externos com custo e chave de API — sem chave, os endpoints de validação terão que degradar para heurísticas (a definir).

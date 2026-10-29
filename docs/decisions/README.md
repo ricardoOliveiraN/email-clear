@@ -12,8 +12,8 @@ Cada arquivo registra uma decisão do projeto. Veja o formato e as regras em [`d
 | [0004](0004-banco-postgresql.md) | Banco PostgreSQL | Aceito |
 | [0005](0005-identidade-anonima-rate-limit.md) | Identidade anônima e quota sem login | Proposto |
 | [0006](0006-injecao-css-html-pastas.md) | Injeção do aviso, quarentena e resiliência do adaptador | Proposto |
-| [0007](0007-classificacao-risco.md) | Classificação e score de risco | Rascunho |
-| [0008](0008-votos-risco-comunitario.md) | Votos de risco comunitário → lista de bloqueio | Rascunho |
+| [0007](0007-classificacao-risco.md) | Classificação e score de risco | Proposto |
+| [0008](0008-votos-risco-comunitario.md) | Votos de risco comunitário → lista de bloqueio | Proposto |
 | [0009](0009-pastas-customizadas-conteudo.md) | Pastas customizadas por conteúdo (cleaner) | Rascunho |
 | [0010](0010-stack-extensao.md) | Stack da extensão (TS + Vite + Web Components) | Aceito |
 | [0011](0011-seguranca-cadeia-suprimentos.md) | Segurança da cadeia de suprimentos (dependências) | Aceito |

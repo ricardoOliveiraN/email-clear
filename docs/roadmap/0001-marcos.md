@@ -7,9 +7,9 @@ Progresso incremental. O foco de implementação começa no **Free** (para teste
 
 - [x] Estrutura da extensão `extension/` (TypeScript + Vite + CRXJS — ADR-0010)
 - [x] Esqueleto da extensão Chrome MV3 + adaptador Gmail (stub)
-- [ ] Estrutura do backend `backend/` + FastAPI rodando (endpoint saúde)
-- [ ] PostgreSQL local (docker) + modelos básicos (remetentes perigosos, verificações)
-- [ ] CI local (lint/testes) e docker-compose de dev
+- [x] Estrutura do backend `backend/` + FastAPI rodando (endpoint saúde `/v1/healthz`)
+- [x] PostgreSQL local (docker) + modelos básicos (instalação, remetente, voto, link, verificação, classificação)
+- [ ] CI local (lint/testes) e docker-compose de dev — docker-compose pronto; CI (GitHub Actions) pendente
 
 ## Fase F2 — Validação Free (MVP de testes)
 **Objetivo**: validar e-mails ao abrir no Gmail e avisar o usuário.

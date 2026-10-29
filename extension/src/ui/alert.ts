@@ -1,4 +1,4 @@
-import type { Classification, RiskLevel } from '../core/types';
+import type { Classification, RiskLevel, VoteValue } from '../core/types';
 
 const HOST_ID = 'email-clear-alert';
 
@@ -16,6 +16,49 @@ const LABELS: Record<RiskLevel, string> = {
   unknown: 'Não avaliado',
 };
 
+const VOTE_LABELS: Record<VoteValue, string> = {
+  dangerous: 'perigoso',
+  safe: 'legítimo',
+};
+
+function pluralize(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+function senderLinksSummary(classification: Classification): string {
+  const parts: string[] = [];
+  const sinais = classification.sinais;
+  const sender = sinais?.sender;
+
+  if (sender?.status === 'dangerous') {
+    parts.push('histórico ruim');
+  } else if (sender?.status === 'legitimate') {
+    parts.push('histórico bom');
+  } else if ((sender?.votos_totais ?? 0) > 0) {
+    parts.push(pluralize(sender?.votos_totais ?? 0, 'voto', 'votos'));
+  } else {
+    parts.push('sem histórico');
+  }
+
+  const linkEntries = Object.entries(sinais?.links ?? {});
+  if (linkEntries.length === 0) {
+    parts.push('sem links');
+  } else {
+    const dangerous = linkEntries.filter(([, v]) => v === 'dangerous').length;
+    const unknown = linkEntries.filter(([, v]) => v === 'unknown').length;
+    const safe = linkEntries.length - dangerous - unknown;
+    if (dangerous > 0) {
+      parts.push(pluralize(dangerous, 'link perigoso', 'links perigosos'));
+    } else if (safe > 0) {
+      parts.push(pluralize(safe, 'link legítimo', 'links legítimos'));
+    } else {
+      parts.push(pluralize(unknown, 'link não verificado', 'links não verificados'));
+    }
+  }
+
+  return parts.join(' · ');
+}
+
 export function isAlertMounted(): boolean {
   return document.getElementById(HOST_ID) !== null;
 }
@@ -24,7 +67,13 @@ export function removeAlert(): void {
   document.getElementById(HOST_ID)?.remove();
 }
 
-export function renderAlert(classification: Classification, onClose?: () => void): void {
+export function renderAlert(
+  classification: Classification,
+  sender: string | null,
+  existingVote: VoteValue | null,
+  onVote: (valor: VoteValue) => Promise<void>,
+  onClose?: () => void,
+): void {
   removeAlert();
 
   const previousFocus = document.activeElement as HTMLElement | null;
@@ -44,18 +93,23 @@ export function renderAlert(classification: Classification, onClose?: () => void
       left: 50%;
       transform: translateX(-50%);
       z-index: 2147483647;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       max-width: min(560px, 92vw);
       box-sizing: border-box;
-      padding: 8px 10px 8px 12px;
+      padding: 8px 10px;
       border-left: 4px solid ${color.border};
       border-radius: 6px;
       background: ${color.background};
       color: ${color.text};
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
       font: 13px/1.4 Roboto, Arial, sans-serif;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .icon {
       flex: none;
@@ -70,6 +124,7 @@ export function renderAlert(classification: Classification, onClose?: () => void
       text-align: center;
     }
     .text {
+      flex: 1 1 auto;
       min-width: 0;
       white-space: nowrap;
       overflow: hidden;
@@ -88,10 +143,70 @@ export function renderAlert(classification: Classification, onClose?: () => void
       border-radius: 4px;
     }
     .close:hover { background: rgba(0, 0, 0, 0.08); }
+    .checks {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 11px;
+      opacity: 0.75;
+    }
+    .reasons {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      min-width: 0;
+      font-size: 11px;
+      opacity: 0.75;
+    }
+    .reasons-text {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .reasons.expanded .reasons-text {
+      white-space: pre-line;
+      overflow: visible;
+    }
+    .more {
+      flex: none;
+      border: none;
+      background: transparent;
+      color: ${color.text};
+      font: 11px/1.4 Roboto, Arial, sans-serif;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .more:hover { opacity: 0.7; }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .vote-btn {
+      border: 1px solid ${color.border};
+      background: transparent;
+      color: ${color.text};
+      font: 12px/1.2 Roboto, Arial, sans-serif;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .vote-btn:hover:not(:disabled) { background: rgba(0, 0, 0, 0.08); }
+    .vote-btn:disabled { opacity: 0.5; cursor: default; }
+    .status {
+      font: 12px/1.2 Roboto, Arial, sans-serif;
+      white-space: nowrap;
+    }
     @media (prefers-color-scheme: dark) {
       .alert { background: #202124; color: ${color.border}; border-color: ${color.border}; }
       .close { color: ${color.border}; }
       .close:hover { background: rgba(255, 255, 255, 0.08); }
+      .vote-btn { color: ${color.border}; border-color: ${color.border}; }
     }
   `;
 
@@ -99,6 +214,10 @@ export function renderAlert(classification: Classification, onClose?: () => void
   alert.className = 'alert';
   alert.setAttribute('role', 'alert');
   alert.title = classification.reasons.join(' · ');
+
+  // linha 1 — ícone + título + fechar (topo)
+  const header = document.createElement('div');
+  header.className = 'header';
 
   const icon = document.createElement('span');
   icon.className = 'icon';
@@ -123,9 +242,124 @@ export function renderAlert(classification: Classification, onClose?: () => void
   closeButton.setAttribute('aria-label', 'Fechar aviso');
   closeButton.textContent = '×';
 
-  alert.append(icon, text, closeButton);
+  header.append(icon, text, closeButton);
+
+  // linha 2 — histórico + links
+  const checks = document.createElement('div');
+  checks.className = 'checks';
+  checks.textContent = senderLinksSummary(classification);
+
+  // linha 3 — o "porquê" da IA (com "ver mais")
+  const reasonsEl = document.createElement('div');
+  reasonsEl.className = 'reasons';
+
+  const reasonsText = document.createElement('span');
+  reasonsText.className = 'reasons-text';
+  reasonsEl.append(reasonsText);
+
+  let reasonsToggle: HTMLButtonElement | null = null;
+
+  const indicators = classification.sinais?.content?.indicators ?? [];
+  const collapsedText =
+    indicators.length > 0 ? `indícios: ${indicators.join(', ')}` : 'sem indícios de phishing';
+  const expandedText = indicators.map((item) => `• ${item}`).join('\n');
+  reasonsText.textContent = collapsedText;
+
+  if (indicators.length > 0) {
+    reasonsToggle = document.createElement('button');
+    reasonsToggle.className = 'more';
+    reasonsToggle.type = 'button';
+    reasonsToggle.textContent = 'ver mais';
+    reasonsEl.append(reasonsToggle);
+
+    let expandedState = false;
+    reasonsToggle.addEventListener('click', () => {
+      expandedState = !expandedState;
+      reasonsText.textContent = expandedState ? expandedText : collapsedText;
+      reasonsEl.classList.toggle('expanded', expandedState);
+      reasonsToggle!.textContent = expandedState ? 'ver menos' : 'ver mais';
+    });
+  }
+
+  // linha 4 — botões de voto
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  const status = document.createElement('span');
+  status.className = 'status';
+  actions.append(status);
+
+  if (sender) {
+    const dangerBtn = document.createElement('button');
+    dangerBtn.className = 'vote-btn';
+    dangerBtn.type = 'button';
+    dangerBtn.title = 'Marcar este remetente como perigoso';
+    dangerBtn.textContent = 'Perigoso';
+
+    const legitBtn = document.createElement('button');
+    legitBtn.className = 'vote-btn';
+    legitBtn.type = 'button';
+    legitBtn.title = 'Marcar este remetente como legítimo';
+    legitBtn.textContent = 'Legítimo';
+
+    const changeBtn = document.createElement('button');
+    changeBtn.className = 'vote-btn';
+    changeBtn.type = 'button';
+    changeBtn.title = 'Trocar seu voto neste remetente';
+    changeBtn.textContent = 'trocar';
+
+    const showButtons = (): void => {
+      changeBtn.remove();
+      status.textContent = '';
+      dangerBtn.disabled = false;
+      legitBtn.disabled = false;
+      actions.append(dangerBtn, legitBtn);
+    };
+
+    const showVoted = (valor: VoteValue): void => {
+      dangerBtn.remove();
+      legitBtn.remove();
+      status.textContent = `✓ marcado como ${VOTE_LABELS[valor]}`;
+      actions.append(changeBtn);
+    };
+
+    if (existingVote) {
+      showVoted(existingVote);
+    } else {
+      actions.append(dangerBtn, legitBtn);
+    }
+
+    changeBtn.addEventListener('click', showButtons);
+
+    const doVote = async (valor: VoteValue): Promise<void> => {
+      dangerBtn.disabled = true;
+      legitBtn.disabled = true;
+      status.textContent = '…';
+      try {
+        await onVote(valor);
+        showVoted(valor);
+      } catch {
+        status.textContent = 'erro ao votar';
+        dangerBtn.disabled = false;
+        legitBtn.disabled = false;
+      }
+    };
+
+    dangerBtn.addEventListener('click', () => {
+      void doVote('dangerous');
+    });
+    legitBtn.addEventListener('click', () => {
+      void doVote('safe');
+    });
+  }
+
+  alert.append(header, checks, reasonsEl, actions);
   shadow.append(style, alert);
   document.body.append(host);
+
+  // esconde o "ver mais" se o texto não estourar
+  if (reasonsToggle && reasonsText.scrollWidth <= reasonsText.clientWidth) {
+    reasonsToggle.style.display = 'none';
+  }
 
   let closed = false;
   const close = (): void => {
